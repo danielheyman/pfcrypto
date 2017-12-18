@@ -78,18 +78,13 @@ function updateHolding(csrf, data) {
     });
 }
 
-function getJSON(url) {
+function getHTML(url) {
     return new Promise(function(resolve, reject) {
         var xhr = new XMLHttpRequest();
         xhr.onreadystatechange = function() {
             if (this.readyState === 4) {
                 if (this.status === 200) {
-                    try {
-                        var json = JSON.parse(this.responseText);
-                        resolve(json);
-                    } catch (ex) {
-                        reject(ex);
-                    }
+                    resolve(this.responseText);
                 } else {
                     reject(this.statusText);
                 }
@@ -97,6 +92,12 @@ function getJSON(url) {
         };
         xhr.open("GET", url);
         xhr.send();
+    });
+}
+
+function getJSON(url) {
+    return getHTML(url).then(function(html) {
+        return JSON.parse(html);
     });
 }
 
@@ -121,6 +122,21 @@ function updateBlockcypherBalancePromise(account, symbol, smallestUnit) {
             console.log('Error retreiving ' + account.ticker + ' account balance for address ' + account.description + '. Error: ' + err);
             resolve();
         });
+    });
+}
+
+function updateXpubBalancePromise(account, symbol, smallestUnit) {
+    var balanceUrl = 'https://blockchain.info/xpub/' + account.description;
+    return getHTML(balanceUrl).then(function(html) {
+        html = html.match(/id="final_balance">[^0-9.]+\d+[^0-9.]+([^ ]+)/);
+        if (!html) {
+            throw "";
+        }
+        account.quantity = parseFloat(html[1]);
+        console.log('Resolved ' + account.ticker + ' account balance for address ' + account.description + ' as: ' + account.quantity);
+    }).catch(function(err) {
+        console.log('Error retreiving ' + account.ticker + ' account balance for address ' + account.description + '. Error: ' + err);
+        return 0;
     });
 }
 
@@ -158,7 +174,9 @@ function getAddressBalances(accountList, callback) {
             if (account.description && account.ticker) {
                 switch (account.ticker.toLowerCase().match(/[a-z-]+/g)[0]) {
                     case 'bitcoin':
-                        return updateBlockcypherBalancePromise(account, 'btc', 1e-8); // 10^8 satoshis/btc
+                        return account.description.slice(0,4) === "xpub"
+                            ? updateXpubBalancePromise(account)
+                            : updateBlockcypherBalancePromise(account, 'btc', 1e-8); // 10^8 satoshis/btc
                     case 'litecoin':
                         return updateBlockcypherBalancePromise(account, 'ltc', 1e-8); // 10^8 base units/ltc
                     case 'dogecoin':

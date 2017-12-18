@@ -13,7 +13,8 @@
         "https://home.personalcapital.com/api/*",
         "https://api.coinmarketcap.com/v1/ticker/",
         "https://api.blockcypher.com/v1/*",
-        "https://api.ethplorer.io/getAddressInfo/*"
+        "https://api.ethplorer.io/getAddressInfo/*",
+        "https://blockchain.info/xpub/*"
     ],
     "content_scripts": [{
         "matches": [
